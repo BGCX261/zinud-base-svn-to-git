@@ -1,0 +1,3 @@
+#!/bin/bash
+for i in *.flv ; do mplayer -dumpaudio -dumpfile "${i%flv}"mp3 "$i" ; done
+

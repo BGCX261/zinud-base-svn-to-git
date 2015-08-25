@@ -1,0 +1,17 @@
+
+[roxterm profile]
+background_type=2
+saturation=0,282857
+font=Smash 12
+always_show_tabs=0
+browser=iceweasel
+mailer=icedove
+disable_tab_menu_shortcuts=1
+scrollback_lines=10000
+scroll_on_output=1
+scroll_on_keystroke=1
+title_string=%s
+width=85
+full_screen=0
+maximise=0
+cursor_shape=2

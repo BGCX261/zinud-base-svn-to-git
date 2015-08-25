@@ -1,0 +1,147 @@
+#! /bin/bash
+
+#zinud Login-configurator script, per-user ZinuD desktop init & configuration
+#Version:
+#0.2.02
+# +------------------------------------------------------------+
+# | mermouy@gmail.com
+# |
+# | This program is free software; you can redistribute it and/or
+# | modify it under the terms of the GNU General Public License
+# | as published by the Free Software Foundation; either version
+# | 3 of the License, or (at your option) any later version.
+# | 
+# | This program is distributed in the hope that it will be useful,
+# | but WITHOUT ANY WARRANTY; without even the implied warranty
+# | of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# | See the GNU General Public License for more details.
+# |
+# | You should have received a copy of the GNU General Public
+# | License along with this program; if not, write to the
+# | Free Software Foundation, Inc., 51 Franklin St,
+# | Fifth Floor, Boston, MA  02110-1301  USA
+# +------------------------------------------------------------+
+
+### On source le fichier de langue ###
+
+. ~/.config/zinud-install/lang.cfg
+
+# VARIABLES
+zinrep="/usr/share/zinud/zinud"
+tempdiag="/tmp/tmpdiag"
+utilisateur="$1"
+
+# Vérification du lancement par root
+if [[ $EUID -ne 0 ]]; then
+	zenity --error --title="$Su" --text="$Sutxt $Rerunnow" --window-icon="$Zinicon"
+	gksu exec $0
+	exit 0
+fi
+
+		########        Fonctions       ########
+
+# Choix Zenity
+
+function Modconnect (){
+dialog --backtitle "$Zininstall" --title "$Session" --ok-label "$Okbut" --cancel-label "$Quitbut" --radiolist "$Howconnect" 13 70 4\
+  "nits" "$Nits" off\
+  "stax" "$Startx" on\
+  "auto" "$Autologtxt" off\
+  "GDM" "$Gdm" off 2>$tempdiag  
+  CONNEXION=$(cat $tempdiag)
+  case $CONNEXION in
+  nits) Nits ;;
+  stax) Stax ;;
+  auto) Autolog ;;
+  GDM) Gdminstall ;;
+  esac
+  }
+
+#Fonction aucune action
+
+function Nits (){
+dialog --msgbox "$Zinudstart" 10 55
+}
+
+# Installation Gdm
+
+function Gdminstall (){
+if [ -e /etc/init.d/gdm ]
+then
+	if [ -e /home/$utilisateur/.xinitrc ]
+	then
+		mv -v /home/$utilisateur/.xinitrc /home/$utilisateur/.xinitrc~
+    	fi
+	cp -vf $zinrep/xinitrc /home/$utilisateur/.xinitrc
+	update-rc.d -f gdm defaults
+	dialog --msgbox "$Relance" 12 45
+else
+dialog --msgbox "$Gdmneed" 12 45
+	aptitude install gdm
+	Gdm
+fi
+}
+  
+# Installation autostartx
+
+function Stax (){
+cd /home/$utilisateur
+if [ -f .profile ]
+then
+	mv -v .profile .profile~
+fi
+cp -vf $zinrep/profile .profile
+if [ -e /home/$utilisateur/.xinitrc ]
+then
+	mv -v /home/$utilisateur/.xinitrc /home/$utilisateur/.xinitrc~
+fi
+cp -vf $zinrep/xinitrc /home/$utilisateur/.xinitrc
+update-rc.d -f gdm remove
+if [ "$1" = "-a" ]
+then
+	dialog --msgbox "$Autolog" 12 45
+else	dialog --msgbox "$Startxdone\n\n$Relance" 12 45
+fi
+}
+  
+# Installation autologin
+
+function Autolog (){
+    # Autologin
+	cd /etc
+	sed -e "s|1:2345:respawn:/sbin/getty 38400 tty1|1:2345:respawn:/bin/login -f $utilisateur tty1 </dev/tty1 >/dev/tty1 2\>\&1" inittab > inittabtemp
+	cp -vf inittab inittab~
+	mv -v inittabtemp inittab
+	dialog --msgbox "$Autolog" 12 45
+    # Autostartx
+    Stax
+}
+
+		#######   Fin des déclaration des fonctions   #######
+
+# Vérification de l'entrée utilisateur
+
+Userlistexist=$(cat /etc/passwd | cut -d: -f1 | grep $1)		  
+if [ $utilisateur = "root" ]
+then
+dialog  --title "$Zininstall" --inputbox "$Enteruser"  10 45 2>$tempdiag
+	utilisateur=$(cat $tempdiag)
+	exec $0 $utilisateur
+elif [ -d /home/$utilisateur/ ] && [ ! -z $Userlistexist ]
+then
+
+# Choix du mode de connexion
+
+	Modconnect
+	if [ -e $tempdiag ]
+		then
+		rm $tempdiag
+	fi
+exit 0
+	
+#Si utilisateur non-existant
+else
+	dialog --title "$Zininstall" --inputbox "$Userexist" 12 45 2>$tempdiag
+	utilisateur=$(cat $tempdiag)
+	exec $0 $utilisateur
+fi

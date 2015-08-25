@@ -1,0 +1,57 @@
+Name: CornerMP-aqua
+Summary: a featured skin for MPlayer
+
+Author: DC.Park <pdc@kaist.ac.kr>
+URL: http://www.MPlayerHQ.hu/homepage/dload.html
+
+%description
+CornerMP-aqua resides in the bottom-right of your desktop corner.
+It does not disturb you in your watching the movies. :)
+
+
+%prep
+# Untar CornerMP-aqua.tar.bz2 with -xfj options.
+# ( eg.  $ tar xfj CornerMP-aqua.tar.bz2 )
+
+%install
+# Move CornerMP-aqua to your MPlayer Skin directory.
+# ( eg.  $ mv CornerMP-aqua /usr/local/share/mplayer/Skin/ )
+
+%clean
+# Delete the CornerMP-aqua.tar.bz2 if unnecessary. :)
+# ( eg. $ rm CornerMP-aqua.tar.bz2 )
+
+
+%changelog
+* Tue Feb 03 2004 Diego Biurrun <diego@biurrun.de> 1.3 
+- Use pos button for volume, too.
+- hpotmeter positions fixed.
+
+* Fri May 03 2002 DongCheon Park <pdc@kaist.ac.kr>  1.2
+- Changed main window and its buttons to aqua look.
+- Renamed to CornerMP-aqua
+
+* Thu Mar 07 2002 DongCheon Park <pdc@kaist.ac.kr>  1.1
+- Improved look and feels.
+- Added korean menu.
+
+* Sun Jan 13 2002 DongCheon Park <pdc@kaist.ac.kr>  1.0
+- Initial release.
+- Converted from Nine of Nine's Winamp3/Corneramp.
+
+
+% a tip for Korean :)
+
+한글메뉴를 사용하실 수 있습니다.
+
+skin 파일을 편집기로 열어, window = menu 섹션의
+base와 selected를 다음과 같이 수정해주세요.
+--
+ window = menu
+ ; base = menu
+  base = menu_ko
+ ; selected = menus
+  selected = menus_ko
+--
+
+동쪽하늘.

@@ -1,0 +1,10 @@
+Package: zinud-base
+Version: 0.4.21
+Priority: optional
+Section: misc
+Architecture: all
+Maintainer: MerMouY <mermouy@gmail.com>
+Depends: base-files, xorg, xterm, zinud-fonts
+Recommends: acpi-support-base, acpi-support, upower, powermgmt-base, alsa-base, alsa-utils, liboss-salsa2, desktop-base, menu-xdg, gnome-keyring, htop, roxterm, oxygen-icon-theme, rcconf, curl, lxappearance, gtk2-engines-nodoka, vorbis-tools, cairo-dock, zenity, seahorse, network-config, nitrogen
+Suggests: xserver-xorg-video-all, xserver-xorg-input-all, compiz, compiz-fusion-plugins-extra, compiz-fusion-plugins-main, compizconfig-backend-gconf, compiz-fusion-plugins-unsupported, compiz-gtk, compiz-gnome, compizconfig-settings-manager, fusion-icon, python-notify, libnotify-bin, alsa-tools, alsa-oss, bash-completion, freedesktop-sound-theme, python-xdg, graphicsmagick-imagemagick-compat, fuseiso, unrar, most, xclip, gnome-alsamixer, xarchiver, thunar-archive-plugin, thunar-media-tags-plugin, thunar-thumbnailers, gmrun, ntfs-config, vlc, numlockx, w32codecs, ffmpeg, ffmpeg2theora, gstreamer0.10-ffmpeg, gstreamer0.10-plugins-ugly, libdvdcss2, seahorse-plugins, gpicview, gdebi, iceweasel, xul-ext-adblock-plus, xul-ext-notify, pidgin-otr, aptitude-gtk, libparse-debianchangelog-perl, gparted, epdfview, flashplugin-nonfree, gimp, icedove, scrot, gedit-plugins, gwibber, preload, localepurge, cpufrequtils, dmsetup, dmraid, grsync, scite, abiword, gtk-recordmydesktop, audacity, fontypython, gftp-gtk, xvnc4viewer, sshfs, grdesktop, avidemux-plugins, pitivi, ttf-mscorefonts-installer, mplayer, mencoder, gnome-utils, bombono-dvd, acidrip, xfburn, audacious-plugins, xscreensaver, xscreensaver-gl-extra, xfce4-taskmanager, computer-janitor-gtk, cdtool, toolame, flac, sox, musepack-tools, ripperx, faac, lame, toolame, libmatroska0, tagtool, xfce4-taskmanager, gnome-bluetooth, cryptkeeper, conky-all, galternatives, zim
+Description: The ZinuD Desktop minimum installation, Debian Sid and Compiz-Fusion desktop, simply light and beautiful...

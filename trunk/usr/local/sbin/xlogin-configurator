@@ -1,0 +1,166 @@
+#! /bin/bash
+# Xlogin-configurator
+# Version 0.1
+#
+## +------------------------------------------------------------+
+# | mermouy@gmail.com
+# |
+# | This program is free software; you can redistribute it and/or
+# | modify it under the terms of the GNU General Public License
+# | as published by the Free Software Foundation; either version
+# | 3 of the License, or (at your option) any later version.
+# | 
+# | This program is distributed in the hope that it will be useful,
+# | but WITHOUT ANY WARRANTY; without even the implied warranty
+# | of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# | See the GNU General Public License for more details.
+# |
+# | You should have received a copy of the GNU General Public
+# | License along with this program; if not, write to the
+# | Free Software Foundation, Inc., 51 Franklin St,
+# | Fifth Floor, Boston, MA  02110-1301  USA
+# +------------------------------------------------------------+
+#
+
+		### VARIABLES ###
+
+# Icône des fenêtres
+Zinicon="/usr/share/pixmaps/zinud/horned-logo.png"
+
+# Dossier contenant les fichiers de langues
+Zinlangrep="/usr/share/zinud/lang"
+
+# Dossier zinud
+Zinrep="/usr/share/zinud/zinud"
+
+		### /VARIABLES ###
+
+		### LANGUE ###
+
+#Liste des fichiers de langues disponibles listé pour zenity-list
+LIST=`ls -m $Zinlangrep | sed -e 's/.cfg,/ FALSE/g' |  sed -e 's/.cfg//g' | sed -e 's/^/FALSE /' | sed -e 's/FALSE en/TRUE en/g'`
+
+#Vérification langue choisie sinon la choisir, ou utiliser en par défaut
+
+while [ ! -f ~/.config/zinud/lang.cfg ]
+do
+	. $Zinlangrep/en.cfg
+	zenity --question --window-icon="$Zinicon" --title="$Zininstall" --text="$Zininstalltxt" || exit 0
+	if [ $? = "0" ]
+	then
+	Chlang=$(zenity --list \
+		--radiolist \
+		--window-icon="$Zinicon" \
+		--title="$Language" \
+		--window-icon="$Zinicon" \
+		--text="$Langconf" \
+		--print-column="2" \
+		--column "$Select" \
+		--column "$Availang" \
+		$LIST) || exit 0
+		cp -vf $Zinlangrep/$Chlang.cfg ~/.config/zinud/lang.cfg
+		. ~/.config/zinud/lang.cfg
+	else
+	cp -vf $Zinlangrep/en.cfg ~/.config/zinud/lang.cfg
+	. ~/.config/zinud/lang.cfg
+	zenity --window-icon="$Zinicon" --info --text="$Engdef"
+	fi
+done
+
+#on source ce fichier de langue 
+. ~/.config/zinud/lang.cfg
+
+		### /LANGUE ###
+
+		### FONCTIONS ###
+
+#Fonction sortie
+function Nits (){
+zenity --window-icon="$Zinicon" --title="Login-configurator" --text="$Zinudstart" --info
+}
+
+# Installation Gdm
+function Gdm (){
+if [ -f /etc/init.d/gdm ]
+then
+	if [ -e /home/$username/.xinitrc ]
+	then
+		mv -v /home/$username/.xinitrc /home/$username/.xinitrc~
+    	fi
+	cp -vf $Zinrep/xinitrc /home/$username/.xinitrc
+	update-rc.d -f gdm defaults
+	zenity --window-icon="$Zinicon" --title="Login-configurator" --text="$Relance"
+else
+	zenity --window-icon="$Zinicon" --title="Login-configurator" --text="$Gdmneed"
+	aptitude install gdm
+	Gdm
+fi
+}
+  
+  # Installation autostartx
+function Stax (){
+cd /home/$username
+if [ -f .profile ]
+then
+	mv -v .profile .profile~
+fi
+cp -vf $Zinrep/profile .profile
+if [ -e /home/$username/.xinitrc ]
+then
+	mv -v /home/$username/.xinitrc /home/$username/.xinitrc~
+fi
+cp -vf $Zinrep/xinitrc /home/$username/.xinitrc
+update-rc.d -f gdm remove
+echo -e "###############################################\n##     Done, Auto StartX installed...      ##\n##      You can close this windows...      ##\n###############################################\n"
+}
+  
+  # Installation autologin
+function Autolog (){
+    # Autologin
+cd /etc
+sed -e "s|1:2345:respawn:/sbin/getty 38400 tty1|1:2345:respawn:/bin/login -f $username tty1 </dev/tty1 >/dev/tty1 2\>\&1|" inittab > inittabtemp
+mv -vf inittab inittab~
+mv -vf inittabtemp inittab
+echo -e "###############################################\n##      Done, Auto Login installed...      ##\n###############################################\n"
+#Autostartx
+Stax
+}
+
+		### /FONCTIONS ###
+
+		### SCRIPT ###
+if [ -z "$1" ]
+then
+	username=$( ls -1 /home | grep -v lost+found | zenity --title="Login-configurator" --window-icon="$Zinicon" --width=300 --list --column="$Usertxt" --text="$Selectuserupdt" || echo "cancel" )
+	if [ "$username" = "cancel" ]
+	then 
+		exit 1
+	fi
+	exec $0 $username
+else 
+	Logmode=$(zenity --window-icon="$Zinicon" --title="Login-configurator" \
+	--list \
+	--radiolist \
+	--text="$Howconnect\n" \
+	--column="$Select" \
+	--column="Description" \
+	--column="" \
+	--hide-column="3" \
+	--print-column="3" \
+	--height=270 \
+	--width=700 \
+	FALSE "$Nits" 1 \
+	TRUE "$Startx" 2 \
+	FALSE "$Gdm $Notimp" 3 \
+	FALSE "$Autologin $Notimp" 4) || exit 1
+	for i in "$Logmode"
+	do
+	case $Logmode in
+	1) Nits ;;
+	2) Stax | zenity --title="Login-configurator" --window-icon="$Zinicon" --text-info --height=500 --width=700 ;;
+	3) Gdm ;;
+	4) Autolog  ;;
+	esac
+	done
+fi
+exit

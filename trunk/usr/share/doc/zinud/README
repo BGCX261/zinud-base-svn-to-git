@@ -1,0 +1,10 @@
+ZinuD!
+Avec un peu de chance tout devrait être fait automatiquement après installation de zinud-base.
+(!! Assurez voius d'avoir des drivers graphiques 3D fonctionnels !!)
+Métapaquet et paquet de scripts/sons/fonds d'écran etc pour le bureau ZinuD!
+Il installe:
+le squelette de configuration utilisateur. avec configuration cairo et compiz basique.
+l'executable de lancement de la session.
+le fichier autostart utilisateur.
+Quelques wallpapers, sons de démarrage etc.
+Les applications de la suite ZinuD

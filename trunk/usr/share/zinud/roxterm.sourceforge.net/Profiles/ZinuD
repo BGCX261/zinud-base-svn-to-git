@@ -1,0 +1,10 @@
+
+[roxterm profile]
+font=Monospace Bold 12
+always_show_tabs=0
+background_type=2
+saturation=0,451530
+browser=iceweasel
+mailer=icedove
+disable_menu_shortcuts=0
+disable_tab_menu_shortcuts=1

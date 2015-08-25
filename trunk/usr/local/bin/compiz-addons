@@ -1,0 +1,318 @@
+#!/bin/bash
+
+# compiz-plugins-experimental-0.8.x
+# A script to install additional compiz plugins not included in the official plugin sets
+# by Scott Moreau oreaus@gmail.com
+
+# Dependencies:
+# These are the dependencies necessary to install all plugins on Ubuntu Jaunty 9.04 or Karmic 9.10
+# This script should work on other distributions provided the dependencies are met
+
+# compiz-fusion-bcop compiz-dev compizconfig-settings-manager build-essential libtool
+# libglu1-mesa-dev libxss-dev libcairo2-dev libpango1.0-dev git-core
+
+# Variables
+
+anaglyph_url=git://anongit.compiz.org/users/wodor/anaglyph
+atlantis_url=git://anongit.compiz.org/compiz/plugins/atlantis
+cubemodel_url=git://anongit.compiz.org/compiz/plugins/cubemodel
+dialog_url=git://anongit.compiz.org/users/rcxdude/dialog
+elements_url=git://anongit.compiz.org/users/pat/elements
+extra_animations_url=git://anongit.compiz.org/users/kdubois/extra-animations
+fakeargb_url=git://anongit.compiz.org/compiz/plugins/fakeargb
+fireflies_url=git://anongit.compiz.org/inactive/users/smspillaz/fireflies
+freewins_url=git://anongit.compiz.org/users/warlock/freewins
+ghost_url=git://anongit.compiz.org/users/rcxdude/ghost
+icons_url=http://sites.google.com/site/oreaus/icons-experimental.tar.gz
+mswitch_url=git://anongit.compiz.org/compiz/plugins/mswitch
+photowheel_url=git://anongit.compiz.org/users/b0le/photowheel
+putplus_url=git://anongit.compiz.org/users/edgurgel/putplus
+screensaver_url=git://anongit.compiz.org/users/pafy/screensaver
+simple_animations_url=git://anongit.compiz.org/users/smspillaz/simple-animations
+smartput_url=git://anongit.compiz.org/users/edgurgel/smartput
+snow_url=git://anongit.compiz.org/fusion/plugins/snow
+snowglobe_url=git://anongit.compiz.org/users/metastability/snowglobe
+stackswitch_url=git://anongit.compiz.org/compiz/plugins/stackswitch
+stars_url=git://anongit.compiz.org/inactive/users/smspillaz/stars
+static_url=http://www.efaref.net/git/compiz/plugins/static.git
+swap_url=git://anongit.compiz.org/users/edgurgel/swap
+throw_url=git://anongit.compiz.org/users/smspillaz/throw
+tile_url=git://anongit.compiz.org/compiz/plugins/tile
+toggle_decoration_url=git://anongit.compiz.org/users/edgurgel/toggle-decoration
+wizard_url=git://anongit.compiz.org/users/soreau/wizard
+workspacenames_url=git://anongit.compiz.org/users/maniac/workspacenames
+
+SRC_DIR=$HOME/src/compiz/plugins
+TMP_DIR=/tmp
+ICON_DIR=/usr/share/ccsm/icons/hicolor/scalable/apps
+
+# Make sure we're being ran in bash
+
+if [[ -z "$BASH_VERSION" ]]; then
+   echo "Please run this script in a bash environment as /path/to/<script> or ./<script> from the directory where it is located."
+   exit 1
+fi
+
+# Don't run it as root
+
+if [[ "$EUID" = 0 ]]; then
+   echo "Run as user, without sudo and not as root."
+   exit 1
+fi
+
+plugin_list=(anaglyph atlantis cubemodel dialog elements extra-animations fakeargb fireflies freewins ghost photowheel putplus screensaver simple-animations smartput snow snowglobe stackswitch stars static swap throw tile toggle-decoration wizard workspacenames)
+# Plugins already ported to compiz++ need to checkout the 0.8 version
+cpp_list=(anaglyph atlantis cubemodel dialog extra-animations fakeargb freewins ghost photowheel screensaver simple-animations snowglobe stackswitch throw tile toggle-decoration wizard workspacenames)
+# Plugins that need porting to compiz++: mswitch putplus smartput workspacenames
+
+dep_list=(compiz compiz-fusion-bcop compiz-dev compizconfig-settings-manager compiz-fusion-plugins-extra build-essential libtool libglu1-mesa-dev libxss-dev libcairo2-dev libdecoration0-dev libpango1.0-dev git-core)
+
+# Functions
+
+help ()      {
+   echo "Compiz Addons - for compiz v0.8"
+   echo "A script to install additional compiz plugins not included in the traditional plugin set."
+   echo "Note: After using this script, restart compiz and ccsm for changes to take effect."
+   echo "Run this script as user with ./<script> or /path/to/<script>, without 'sh' or 'sudo'!"
+   echo
+   echo "Usage: compiz-addons [OPTION] [TARGET]"
+   echo "Options:"
+   echo
+   echo "install <target>          : Installs plugin <target>"
+   echo "uninstall <target>        : Uninstalls plugin <target>"
+   echo "--list                    : List of available targets"
+   echo
+   echo "--help                    : Displays this usage screen"
+   exit 0
+}
+
+download () {
+
+   local url="${1//-/_}_url"
+   if isin "$1" "${cpp_list[@]}"; then
+      git clone "${!url}"
+      cd $SRC_DIR/$1
+      git checkout -q compiz-0.8
+      cd $SRC_DIR
+   elif [[ "$1" = "icons" ]]; then
+      wget -O $TMP_DIR/$1-experimental.tar.gz "${!url}"
+   else
+      git clone "${!url}"
+   fi
+}
+
+validate_plugin ()   {
+   cd $SRC_DIR
+   if [[ ! -d $SRC_DIR/$1 ]]; then
+      download $1
+   else
+      echo "Existing source for $1 detected."
+      cd $SRC_DIR/$1
+      git pull
+   fi
+   if [[ -d $SRC_DIR/$1 ]]; then
+      cd $SRC_DIR/$1
+   fi
+}
+
+install ()   {
+   validate_plugin $1
+   if [[ ! -d $SRC_DIR/$1 ]]; then
+      echo "Error occured. Please see http://forum.compiz.org/viewtopic.php?f=114&t=12012 and report any problems."
+   else
+      echo "Building $1.."
+      make clean
+      make
+      echo "Installing.."
+      make install
+      local icon="$(grep PLUGIN plugin.info|sed '/^PLUGIN[ =]/s/^[^=]* *= *//p;d')"
+      if [[ ! -z "$icon" && $1 != "throw" ]]; then
+         icon="plugin-${icon}.svg"
+         if [[ ! -e $ICON_DIR/$icon ]]; then
+            echo "Installing icon for $1.."
+            if [[ ! -e $TMP_DIR/icons-experimental.tar.gz ]]; then
+               download icons
+            fi
+            echo "Password may be required to install $icon to $ICON_DIR"
+            sudo tar -xzf $TMP_DIR/icons-experimental.tar.gz -C $ICON_DIR --strip 1 icons-experimental/$icon
+            echo "Installed $icon to $ICON_DIR"
+         fi
+      fi
+   fi
+}
+
+uninstall ()   {
+   validate_plugin $1
+   echo "Removing $1"
+   make uninstall
+}
+
+purge () {
+	echo "Purging source files.."
+	for dir in "${plugin_list[@]}"; do
+		if [[ -d $SRC_DIR/$dir ]]; then
+			echo "Deleting $SRC_DIR/$dir/"
+			rm -rf $SRC_DIR/$dir
+		fi
+	done
+	echo "Purging plugins.."
+	echo "Removing $HOME/.compiz/"
+	rm -rf $HOME/.compiz/
+	echo "Removing /tmp/icons-experimental.tar.gz"
+	rm /tmp/icons-experimental.tar.gz
+	quit
+}
+
+single_plugin ()   {
+   $1 $2
+   quit
+}
+
+do_all ()   {
+   $1 $2
+   continue
+}
+
+skip ()   {
+   echo "Skipping $1."
+}
+
+quit ()   {
+   echo "Done."
+   echo "Don't forget to restart compiz and ccsm after installing or removing any plugin. $(tput setaf 4)E$(tput setaf 1)n$(tput setaf 3)j$(tput setaf 4)o$(tput setaf 2)y$(tput setaf 1)!$(tput sgr0) :-)"
+   exit 0
+}
+
+test ()   {
+      if [[ "$1" = "q" ]]; then
+         tput sgr0
+         quit
+
+         elif [[ "$1" = "s" ]]; then
+            tput sgr0
+            skip $dir
+         elif [[ "$1" = "i" ]]; then
+            tput sgr0
+            install $dir
+         elif [[ "$1" = "u" ]]; then
+            tput sgr0
+            uninstall $dir
+         elif [[ "$1" = "a" ]]; then
+            tput sgr0
+            echo "Installing all remaining without prompting.."
+            dont_prompt=1
+            do_all install $dir
+         else
+            echo "Invalid option.\'$1\'"
+            quit
+      fi
+}
+
+isin () {
+   local key="$1" value
+   shift
+   for value; do
+   [[ "$value" = "$key" ]] && return
+   done
+   return 1
+}
+
+init_deps () {
+for dep in "${dep_list[@]}"; do
+   if ! dpkg --get-selections "$dep" 2>/dev/null | grep -qE '\<install$' > /dev/null; then
+      echo "Installing dependencies.."
+      sudo apt-get install "${dep_list[@]}"
+      break
+   fi
+done
+
+mkdir -p $SRC_DIR
+}
+
+do_loop () {
+
+init_deps
+
+if [[ ! $dont_prompt ]]; then
+   echo "$(tput setaf 2)i$(tput sgr0) = $(tput setaf 2)Install$(tput setaf 3) s$(tput sgr0) = $(tput setaf 3)Skip$(tput setaf 6) u$(tput sgr0) = $(tput setaf 6)Uninstall$(tput setaf 5) a$(tput sgr0) = $(tput setaf 5)Install all remaining without prompting$(tput setaf 1) q$(tput sgr0) = $(tput setaf 1)Quit$(tput sgr0)"
+fi
+
+for dir in "${plugin_list[@]}"; do
+   tput sgr0
+
+   if [[ $dont_prompt ]]; then
+      if [[ -z "$1" ]]; then
+         do_all install $dir
+      else
+         do_all $1 $dir
+      fi
+   fi
+
+   read -p "What would you like to do for $(tput setaf 3)$dir$(tput sgr0)? $(tput setaf 2)i$(tput sgr0)/$(tput setaf 3)s$(tput sgr0)/$(tput setaf 6)u$(tput sgr0)/$(tput setaf 5)a$(tput sgr0)/$(tput setaf 1)q$(tput sgr0): " response
+   test $response
+
+   tput sgr0
+
+done
+quit
+}
+
+
+# Main
+
+case "$1" in
+   -h | --help )
+      help ;;
+   --list )
+   echo "Valid targets are:"
+   for i in "${plugin_list[@]}"; do
+      echo "$i"
+   done
+   echo "all (Performs <action> for all plugins)"
+   exit 0 ;;
+   install   )
+      if [[ -z "$2" ]]; then
+         echo "This command requires a target. See --list for a list of valid targets."
+         quit
+      elif isin "$2" "${plugin_list[@]}"; then
+         init_deps
+         single_plugin $1 $2
+      elif [[ "$2" = "all" ]]; then
+         tput sgr0
+         echo "$(tput setaf 2)Installing all plugins without prompting.$(tput sgr0)"
+         dont_prompt=1
+         do_loop $1
+         quit
+      else
+         echo "Invalid target. See --list for a list of valid targets."
+         quit
+      fi ;;
+   uninstall )
+      if [[ -z "$2" ]]; then
+         echo "This command requires a target. See --list for a list of valid targets."
+         quit
+      elif isin "$2" "${plugin_list[@]}"; then
+         echo "Uninstalling $2.."
+         single_plugin $1 $2
+      elif [[ "$2" = "all" ]]; then
+         tput sgr0
+         echo "$(tput setaf 6)Uninstalling all plugins.$(tput sgr0)"
+         dont_prompt=1
+         do_loop $1
+         quit
+      else
+         echo "Invalid target. See --list for a list of valid targets."
+         quit
+      fi ;;
+   purge )
+      purge   ;;
+   * )
+      if [[ ! -z "$1" ]]; then
+         echo "Invalid option \"$1\""
+         help
+      fi
+esac
+
+do_loop
+
+exit 0

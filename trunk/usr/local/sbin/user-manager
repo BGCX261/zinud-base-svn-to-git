@@ -1,0 +1,228 @@
+#!/bin/bash
+# Version 0.2
+#
+# +------------------------------------------------------------+
+# | mermouy@gmail.com
+# |
+# | This program is free software; you can redistribute it and/or
+# | modify it under the terms of the GNU General Public License
+# | as published by the Free Software Foundation; either version
+# | 3 of the License, or (at your option) any later version.
+# | 
+# | This program is distributed in the hope that it will be useful,
+# | but WITHOUT ANY WARRANTY; without even the implied warranty
+# | of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# | See the GNU General Public License for more details.
+# |
+# | You should have received a copy of the GNU General Public
+# | License along with this program; if not, write to the
+# | Free Software Foundation, Inc., 51 Franklin St,
+# | Fifth Floor, Boston, MA  02110-1301  USA
+# +------------------------------------------------------------+
+#
+## FICHIER DE LOG
+LOGF="/tmp/user-manager.$DATE.log"
+
+## VARIABLES
+Deluser="deluser"
+USERADD="useradd"
+ADDUSER="adduser"
+DHOME="/home"
+
+# Icône des fenêtres
+Zinicon="/usr/share/pixmaps/zinud/horned-logo.png"
+
+# Dossier contenant les fichiers de langues
+Zinlangrep="/usr/share/zinud/lang"
+
+# Importation de la config systeme
+. /etc/adduser.conf
+
+if [ -z "$USERS_GID" ]; then
+  USERS_GID=100
+fi
+
+## LANGUE
+
+#Liste des fichiers de langues disponibles listé pour zenity-list
+LIST=`ls -m $Zinlangrep | sed -e 's/.cfg,/ FALSE/g' |  sed -e 's/.cfg//g' | sed -e 's/^/FALSE /' | sed -e 's/FALSE en/TRUE en/g'`
+
+#Vérification langue choisie sinon la choisir, ou utiliser en par défaut
+
+while [ ! -f ~/.config/zinud/lang.cfg ]
+do
+	. $Zinlangrep/en.cfg
+	zenity --question --window-icon="$Zinicon" --title="$Zininstall" --text="$Zininstalltxt" || exit 0
+	if [ $? = "0" ]
+	then
+	Chlang=$(zenity --list \
+		--radiolist \
+		--window-icon="$Zinicon" \
+		--title="$Language" \
+		--window-icon="$Zinicon" \
+		--text="$Langconf" \
+		--print-column="2" \
+		--column "$Select" \
+		--column "$Availang" \
+		$LIST) || exit 0
+		if [ ! -d ~/.config/zinud/ ]
+		then mkdir -vp ~/.config/zinud/ 
+		fi
+		cp -vf $Zinlangrep/$Chlang.cfg ~/.config/zinud/lang.cfg
+		. ~/.config/zinud/lang.cfg
+	else
+	cp -vf $Zinlangrep/en.cfg ~/.config/zinud/lang.cfg
+	. ~/.config/zinud/lang.cfg
+	zenity --window-icon="$Zinicon" --info --text="$Engdef"
+	fi
+done
+
+#on source ce fichier de langue 
+. ~/.config/zinud/lang.cfg
+
+# Vérification du lancement par root
+if [[ $EUID -ne 0 ]]; then
+	zenity --error --title="$Su" --text="$Su $Rerunnow" --window-icon="$Zinicon"
+	gksu exec $0
+fi
+
+## FONCTIONS
+
+errorexit(){
+errormessage=`cat $LOGF`
+zenity --window-icon="$Zinicon" --error --text="$errormessage"
+rm -f $LOGF 2>/dev/null
+exit 1
+}
+
+messagedone(){
+zenity --window-icon="$Zinicon" --info --text="$Successadded $username $Usercanuse"
+}
+
+passverify(){
+[[ "$userpass" != "$repeatpass" ]] && { zenity --window-icon="$Zinicon" --error --text="$Passnosame" ; passstep ; }
+}
+
+passstep(){
+userpass=$(zenity --window-icon="$Zinicon" --entry --hide-text --text="$Enterpass $username" || echo cancel)
+[[ "$userpass" = "cancel" ]] && exit 1 
+repeatpass=$( zenity --entry --hide-text --text="$Passretype" || echo cancel )
+[[ "$repeatpass" = "cancel" ]] && exit 1 
+#userpass="$( echo "$userpass" | sed -e 's|"|\\\"|g' -e 's|\$|\\\$|g' )"
+#repeatuserpass="$( echo "$userpass" | sed -e 's|"|\\\"|g' -e 's|\$|\\\$|g' )"
+userpass=$( echo "$userpass" | sed "s|'|'\\\''|g" )
+repeatuserpass=$( echo "$repeatuserpass" | sed "s|'|'\\\''|g" )
+passverify
+}
+
+function addgroups () {
+gruplist="plugdev haldaemon users powerdev disk cdrom audio dialout dip fuse games lp lpadmin video disk"
+for i in $gruplist
+do
+	$ADDUSER $username $i
+done
+}
+
+function delgroups () {
+for i in `groups pat | sed -e "s/$username : $username //g"`
+do
+$Deluser $username $i
+done
+}
+
+#sudoersadd(){
+#grep $username /etc/sudoers || echo -e "$username\tALL=(ALL) ALL" >> /etc/sudoers
+#chmod 0440 /etc/sudoers
+#}
+
+#sudoersdel(){
+#grep $username /etc/sudoers && sed -i "s/^.*$username.*$//" /etc/sudoers
+#sed -i '/^$/d' /etc/sudoers
+#chmod 0440 /etc/sudoers
+#}
+
+Addusergr (){
+username=`( zenity --window-icon="$Zinicon" --entry --text="$Enternamegr" || echo cancel )`
+[[ "$username" = "cancel" ]] && firstoption
+[[ "$username" = "root" ]] && { zenity --window-icon="$Zinicon" --error --text="$Norroot" ; exit 1 ; }
+addgroups | zenity --title="$Usermanager" --text-info --window-icon="$Zinicon" --width=750 --height=600
+}
+
+Addusergr1 (){
+addgroups | zenity --title="$Usermanager" --text-info --window-icon="$Zinicon" --width=750 --height=600
+}
+
+Userdel(){
+username=$( ls -1 "$DHOME" | grep -v lost+found | zenity --window-icon="$Zinicon" --list --column="$Usertxt" --text="$Selectuser" || echo "cancel" )
+if [ $username = "cancel" ]
+then
+	firstoption
+else
+	zenity --window-icon="$Zinicon" --question --text="$Delsure $username ?" || exit 1
+delgroups
+	zenity --window-icon="$Zinicon" --question --text="$Delall $DHOME/$username $Filefrom $username ?" && { userdel -r $username 2>$LOGF || errorexit ; } || { userdel $username 2>$LOGF || errorexit ; }
+	zenity --window-icon="$Zinicon" --info --text="$Successremov $username"
+fi
+}
+
+Adduser(){
+username=`( zenity --window-icon="$Zinicon" --entry --text="$Entername" || echo cancel )`
+[[ "$username" = "cancel" ]] && firstoption
+[[ "$username" = "root" ]] && { zenity --window-icon="$Zinicon" --error --text="$Norroot" ; exit 1 ; }
+passstep
+addgroup $username
+$USERADD -d "$DHOME/$username" -m -k /etc/skel -c "ZinuD User" -g $username -s /bin/bash $username 2>$LOGF || errorexit
+chpasswd -h 2>&1 | grep -iq md5 && chpassopt="-m" || chpassopt=""
+echo "$username:$userpass" | chpasswd $chpassopt
+xterm -e /usr/local/sbin/zinud-skel $username z 2>$LOGF || errorexit
+Addusergr1
+messagedone
+}
+
+Changepass(){
+username=$( ls -1 "$DHOME" | grep -v lost+found | zenity --window-icon="$Zinicon" --list --column="$Usertxt" --text="$Entername1" || echo "cancel" )
+[[ "$username" = "cancel" ]] && firstoption 
+passstep
+chpasswd -h 2>&1 | grep -iq md5 && chpassopt="-m" || chpassopt=""
+echo "$username:$userpass" | chpasswd $chpassopt
+zenity --window-icon="$Zinicon" --info --text="$Passchanged"
+}
+
+Changepassroot(){
+username="root"
+passstep
+chpasswd -h 2>&1 | grep -iq md5 && chpassopt="-m" || chpassopt=""
+echo "$username:$userpass" | chpasswd $chpassopt
+zenity --window-icon="$Zinicon" --info --text="$Passchanged"
+}
+
+#Premier choix
+firstoption(){
+selection=$( zenity --window-icon="$Zinicon" \
+--title="$Usermanager" \
+--text="$Chooseone" \
+--list \
+--height=300 --width=400 \
+--print-column=1 \
+--hide-column=1 \
+--column="" \
+--column="$Action" \
+"1" "$Addusertxt" \
+"2" "$Delusertxt" \
+"3" "$Passchangetxt" \
+"4" "$Rootpassch" \
+"5" "$Addgrouptxt" \
+"6" "$Updateuser" \
+"7" "$Xlogin" || echo cancel )
+#traitement de la réponse
+[[ "$selection" = "cancel" ]] && exit 1 
+[[ "$selection" = "1" ]] && { Adduser ; exec $0 ; }
+[[ "$selection" = "2" ]] && { Userdel ; exec $0 ; }
+[[ "$selection" = "3" ]] && { Changepass ; exec $0 ; }
+[[ "$selection" = "4" ]] && { Changepassroot ; exec $0 ; }
+[[ "$selection" = "5" ]] && { Addusergr ; exec $0 ; }
+[[ "$selection" = "6" ]] && { /usr/local/sbin/xzinud-skel ; exec $0 ; }
+[[ "$selection" = "7" ]] && { /usr/local/sbin/xlogin-configurator ; exec $0 ; }
+}
+
+firstoption

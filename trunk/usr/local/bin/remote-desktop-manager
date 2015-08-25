@@ -1,0 +1,182 @@
+#!/bin/bash
+#Vérification langue choisie sinon la choisir, ou utiliser en par défaut
+# Icône des fenêtres
+Zinicon="/usr/share/zinud/horned-logo.png"
+
+# Dossier contenant les fichiers de langues
+Zinlangrep="/usr/share/zinud/lang"
+## LANGUE
+
+#Liste des fichiers de langues disponibles listé pour zenity-list
+LIST=`ls -m $Zinlangrep | sed -e 's/.cfg,/ FALSE/g' |  sed -e 's/.cfg//g' | sed -e 's/^/FALSE /' | sed -e 's/FALSE en/TRUE en/g'`
+
+#Vérification langue choisie sinon la choisir, ou utiliser en par défaut
+
+while [ ! -f ~/.config/zinud/lang.cfg ]
+do
+	. $Zinlangrep/en.cfg
+	zenity --question --window-icon="$Zinicon" --title="$Zininstall" --text="$Zininstalltxt" || exit 0
+	if [ $? = "0" ]
+	then
+	Chlang=$(zenity --list \
+		--radiolist \
+		--window-icon="$Zinicon" \
+		--title="$Language" \
+		--window-icon="$Zinicon" \
+		--text="$Langconf" \
+		--print-column="2" \
+		--column "$Select" \
+		--column "$Availang" \
+		$LIST) || exit 0
+		cp -vf $Zinlangrep/$Chlang.cfg ~/.config/zinud/lang.cfg
+		. ~/.config/zinud/lang.cfg
+	else
+	cp -vf $Zinlangrep/en.cfg ~/.config/zinud/lang.cfg
+	. ~/.config/zinud/lang.cfg
+	zenity --window-icon="$Zinicon" --info --text="$Engdef"
+	fi
+done
+
+#on source ce fichier de langue 
+. ~/.config/zinud/lang.cfg
+#VARIABLES
+Vncserv="x11vnc -rfbauth ~/.vnc/passwd"
+Extad=$(wget http://checkip.dyndns.org/ -O - -o /dev/null | cut -d: -f 2 | cut -d ' ' -f 2 | cut -d\< -f 1)
+Extadr="\n\nhttp://$Extad"
+Intad="$(/sbin/ifconfig $Iface | awk '/inet/{gsub(" *inet add?r:","");print $1;exit}')"
+Intadr="\n\nhttp://$Intad"
+
+#message d'erreur
+errorexit(){
+errormessage=`cat /tmp/.errormessage`
+zenity --error --text="$errormessage"
+rm -f /tmp/.errormessage 2>/dev/null
+exit 0
+}
+
+#Ajouter un mot de passe?
+
+Passvnc(){
+zenity --question --text="$Passasktxt"
+if [ $? = "0" ]
+then
+#Demander un mot de passe vnc
+	Passw=$(zenity --entry \
+	--hide-text \
+	--text="$Passask") || exit 0
+	if [ -z "$Passw" ]
+	then
+		zenity --error --text="$Emptypass"
+		Passvnc
+	else
+		mkdir -p ~/.vnc
+		x11vnc -storepasswd $Passw ~/.vnc/passwd
+	fi
+else
+	Vncserv="x11vnc"
+fi
+}
+
+#Démarrer le serveur
+
+serve(){
+#Check si mot de passe
+if [ ! -f ~/.vnc/passwd ]
+then
+	Passvnc
+else
+	zenity --info --text="$Passexist"
+fi
+Vncexist=`ps -A | grep x11vnc` 
+if [ ! -z $Vncexist ]
+then
+	zenity --question --text="$Alreadyserv"
+	if [ $? = "0" ]
+	then
+		killall -s SIGTERM x11vnc && exit 0
+	fi
+fi
+zenity --info --text="$Port5900 $Extadr:5900\n\n$Intadrtxt $Intadr:5900"
+$Vncserv &
+while true
+do
+	zenity --notification --text="$Hereclick"
+	if zenity --question --title="$Confirm" --text="$Confirmtxt"
+	then
+		stopserve
+	fi
+done
+}
+
+
+#linux ou Windows?
+
+accessselection(){
+selection=`( zenity --list \
+--radiolist \
+--width="450" \
+--height="190" \
+--text="$Selectone" \
+--hide-column="3" \
+--print-column="3" \
+--column="$Select" \
+--column="$Option" \
+--column='' \
+'TRUE' "$Linuxmach" '1' \
+'FALSE' "$Winmach" '2' || echo exit 0 )`
+
+[[ "$selection" = "1" ]] && linuxmachine
+[[ "$selection" = "2" ]] && windowsmachine
+}
+
+#machine windows
+
+windowsmachine(){
+selection=`( zenity --entry \
+--text="$Hostip" \
+--width="350" \
+--entry-text='192.168.134.1' || echo cancel )`
+[[ "$selection" = "cancel" ]] && exit 0
+zenity --info --text="$Winmachtxt"
+rdesktop -a 16 $selection 2>/tmp/.errormessage || rdesktop -a 24 $selection 2>>/tmp/.errormessage || errorexit
+rm -f /tmp/.errormessage 2>/dev/null
+}
+
+
+#Machine linux
+
+linuxmachine(){
+selection=`( zenity --entry \
+--text="$Hostip" \
+--entry-text='192.168.134.1' || echo cancel )`
+[[ "$selection" = "cancel" ]] && exit 0
+xvncviewer $selection || { ping -W 4 -c 1 $selection && zenity --error --text="$Noconnect" || zenity --error --text="$Noconnect1" ; }
+}
+
+#Arrêter le serveur
+
+stopserve(){
+ps -A | grep x11vnc && { killall -s SIGTERM x11vnc ; killall -9 x11vnc ; sleep 1 ; zenity --info --text="$Servstopsuccess" ; exit 0 ; }
+zenity --info --text="$Serverstopall"
+}
+
+#Sélection
+
+selection=`( zenity --list \
+--radiolist \
+--height=200 \
+--width=400 \
+--text="$Selectone" \
+--hide-column='3' \
+--print-column='3' \
+--column="$Select" \
+--column="$Configure" \
+--column='' \
+TRUE "$Allowaccess" 1 \
+FALSE "$Remoteaccess" 2 \
+FALSE "$Stopserver" 3 || exit 0 )`
+
+[[ "$selection" = "1" ]] && serve
+[[ "$selection" = "2" ]] && accessselection
+[[ "$selection" = "3" ]] && stopserve
+

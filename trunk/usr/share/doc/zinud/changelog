@@ -1,0 +1,15 @@
+Script de postinstallation du paquet re-travaillé et à re-travailler encore!!!
+0.1.22 : correction des ereurs d'entrée utilisateur.
+0.1.34 : correction des droits répertoires utilisateurs
+0.1.37 : Initialisation du découpage zinud-base et zinud-desktop, ajout script choix du mode de connexion.
+0.2.0.7 : Plus de choix mais autostartx toujours buggé. Configuration compiz par défaut ajouté, configuration cairo ajoutée. Suppression de trayer et parcellite remplacés par cairo plugs.
+0.2.10 : Remplacement su paquet cairo-dock par cairo-dock core + data etc. Création d'un paquet supplémentaire de police nommé zinud-fonts, ajout de configurations de base pour gtkrc.
+0.4.05: retour à un seul paquet zinud-base et choix des applications depuis zinud-install, ajout d'applications, suppression de gmrun,correction de divers bugs, apparition de confinud et desktop-configurator. Internationalisation des scripts.Refonte du site (http://zinud.youm.org) et mise en place des fichiers zinud sur serveur subversion chez googlecode.
+0.4.09: Suppression du theme pour cairo-dock du paquet, il sera désormais téléchargé depuis le site; Internationnalisation achevée; disponible en version squeeze. Modification du fichier de démarrage auto avec la session pour tout type d'install.
+0.4.10: Ajout de deux applications graphiques: xlogin-configurator et xzinud-skel. Pour respectivement, changer le mode de connection à la session et mettre à jour le profil aprés mise à jour ZinuD.
+0.4.13 Ajout support sudo, ajout de compiz-compilator et experience de gdm
+0.4.14: Diverses corrections bugs modification zinud-skel , ajout de la derniere version compiz 0.9.2.1 par compiz-compilator, utilisation de compiz-manager en place de fusion-icon
+0.4.16: Corrections de login-configurator et user-manager ajout de autologin et suppression d'un max de dépendances de zinud-base
+0.4.19: Correction divers bogues de syntaxe
+0.4.20: Correction paquet powersaved
+0.4.21: Correction login-configurator autoconnect

@@ -1,0 +1,176 @@
+#!/bin/bash
+#
+# ------------------------------------------------------------------
+#	     Pour Debian ZinuD par MerMouY
+#	Librement inspiré/adapté des travaux de 
+#	sputnick in da FreAkY lApPy lAb (c) 2009
+#       gilles.quenot <AT> gmail <DOT> com
+#	Idea from smecher.
+#
+#	Utilisant eux-même des scripts mis à disposition sur 
+#	http://stackp.online.fr
+# ------------------------------------------------------------------
+#
+# +------------------------------------------------------------+
+# | mermouy@gmail.com
+# |
+# | This program is free software; you can redistribute it and/or
+# | modify it under the terms of the GNU General Public License
+# | as published by the Free Software Foundation; either version
+# | 3 of the License, or (at your option) any later version.
+# | 
+# | This program is distributed in the hope that it will be useful,
+# | but WITHOUT ANY WARRANTY; without even the implied warranty
+# | of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# | See the GNU General Public License for more details.
+# |
+# | You should have received a copy of the GNU General Public
+# | License along with this program; if not, write to the
+# | Free Software Foundation, Inc., 51 Franklin St,
+# | Fifth Floor, Boston, MA  02110-1301  USA
+# +------------------------------------------------------------+
+# ------------------------------------------------------------------
+#
+#  Questions et infos : http://zinud.youm.org/forums.html
+# 
+#  Depends:
+#    zenity
+#    droopy.py
+# 
+
+###LANGUE
+
+#Dossier contenant les fichiers de langues
+Zinlangrep="/usr/share/zinud/lang"
+
+#Liste des fichiers de langues disponibles listé pour zenity-list
+LIST=`ls -m $Zinlangrep | sed -e 's/.cfg,/ FALSE/g' |  sed -e 's/.cfg//g' | sed -e 's/^/FALSE /' | sed -e 's/FALSE en/TRUE en/g'`
+
+#icône des fenêtres
+Zinicon="/usr/share/pixmaps/zinud/horned-logo.png"
+
+#Création du dossier de configuration zinud utilisateur s'il n'existe pas
+
+if [ ! -d ~/.config/zinud ]
+then
+	mkdir -p ~/.config/zinud
+fi
+
+#Vérification langue choisie sinon la choisir, ou utiliser eng par défaut
+
+while [ ! -f ~/.config/zinud/lang.cfg ]
+do
+	. $Zinlangrep/en.cfg
+	zenity --question --window-icon="$Zinicon" --title="$Zininstall" --text="$Zininstalltxt" || exit 0
+	if [ $? = "0" ]
+	then
+	Chlang=$(zenity --list \
+		--radiolist \
+		--title="$Language" \
+		--window-icon="$Zinicon" \
+		--text="$Langconf" \
+		--print-column="2" \
+		--column "$Select" \
+		--column "$Availang" \
+		$LIST) || exit 0
+		cp -vf $Zinlangrep/$Chlang.cfg ~/.config/zinud/lang.cfg
+		. ~/.config/zinud/lang.cfg
+		zenity --info --text="$Langdef"
+	else
+	cp -vf $Zinlangrep/en.cfg ~/.config/zinud/lang.cfg
+	. ~/.config/zinud/lang.cfg
+	zenity --info --text="$Engdef"
+	fi
+done
+
+
+#on source ce fichier de langue 
+
+. ~/.config/zinud/lang.cfg
+
+###/LANGUE
+
+DIR=$1
+
+# User entry verification (not empty or ask again)
+
+while [ -z $DIR ] || [ ! -d $DIR ]
+do
+DIR=$(zenity --window-icon="$Zinicon" --entry --title="$Dirchoice" --text="$Dirchoiceuptxt" --entry-text=`pwd` || exit 0)
+done
+
+# User entry verification (for being a writable dir or exit)
+
+if [ ! d $DIR ] || [ ! -w $DIR ]
+then
+zenity --error --window-icon="$Zinicon" --title="$Error" --text="$Write"
+exit 0
+fi
+
+# Interface to listen on
+
+iface=$(zenity --window-icon="$Zinicon" --entry --title="$Eth" --text="$Ethtxt" --entry-text="eth0")
+case $? in
+  0)
+    zenity --info --window-icon="$Zinicon" --title="$Eth" --text="$Interf \"$iface\" $Interfselect";;
+  1)
+    zenity --error --window-icon="$Zinicon" --title="$Eth" --text="$Noeth"; exit 0;;
+  -1)
+    zenity --error --window-icon="$Zinicon" --title="$Eth" --text="$Errorzic"; exit 0;;
+esac
+
+# Port to listen on
+
+PORT=$(zenity --window-icon="$Zinicon" --entry --title="$Port" --text="$Porttxt" --entry-text="8000")
+case $PORT in
+  0)
+    zenity --info --window-icon="$Zinicon" --title="$Port" --text="$Port \"$PORT\" $Portselect";;
+  1)
+    zenity --error --window-icon="$Zinicon" --title="$Port" --text="$Portnochoice"; exec $0 $DIR;;
+  -1)
+    zenity --error --window-icon="$Zinicon" --title="$Port" --text="$Errorzic"; exit 0;;
+esac
+
+# Is port already in use?
+
+servpid=$(lsof -t -i :$PORT)
+if [ ! -z $servpid ]; then
+    zenity --window-icon="$Zinicon" --error --title="$Error" --text="$Portak $PORT $Portaken\n$servpid\n$Portaken2"
+    exec $0
+fi
+
+# Personnal message to display (optional)
+
+Mesg=$(zenity --window-icon="$Zinicon" --entry --title="$Mesg" --text="$Mesgtxt" --entry-text="$Mesgdef")
+
+# Last confirmation and summary
+
+zenity --window-icon="$Zinicon" --question --title="ShareItUP" --text="$Lastask\n\n$Dirsel \"$DIR\" $Lastasktxt\n\nhttp://$(wget http://checkip.dyndns.org/ -O - -o /dev/null | cut -d: -f 2 | cut -d ' ' -f 2 | cut -d\< -f 1):$PORT\n\n$Lastask2\n\nhttp://$(/sbin/ifconfig $iface | awk '/inet/{gsub(" *inet add?r:","");print $1;exit}'):$PORT\n\n$Lastask3" || exit 0
+
+# Does log file already exist if so rename it
+
+DATE=$(sed -n '1p' .dropit.log | cut -d '[' -f2 | cut -d ']' -f1 | sed -e "s/\//./g" | sed -e "s/:/./g" | sed -e "s/ /./g")
+if [ -f $DIR/.dropit.log ]
+then
+mv .dropit.log .dropit.$DATE.log
+zenity --window-icon="$Zinicon" --info --text="$Oldlog $DIR/.dropit.$DATE.log"
+fi
+
+# Let's start the server & create the logfile
+if [ ! -z "$Mesg" ]
+then python /usr/local/bin/droopy.py -m "$Mesg" -d $DIR $PORT 2>&1 | tee $DIR/.drooper.log &
+else python /usr/local/bin/droopy.py -d $DIR $PORT 2>&1 | tee $DIR/.drooper.log &
+fi
+# Create notification area to stop the server
+
+while true; do
+    zenity --notification  --text="$Hereclick"
+
+    if zenity --question --title="$Confirm" --text="$Confirmtxt\n$Interf $iface:$PORT."; then
+	while [ ! -z `lsof -t -i :$PORT` ]
+	do
+        	kill `lsof -t -i :$PORT`
+	done
+        exit $?
+    fi
+done

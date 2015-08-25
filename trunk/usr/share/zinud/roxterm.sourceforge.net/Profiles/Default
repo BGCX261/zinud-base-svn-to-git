@@ -1,0 +1,17 @@
+
+[roxterm profile]
+font=Marker SD 16
+background_type=2
+saturation=0,322759
+browser=x-www-browser
+mailer=icedove
+disable_menu_shortcuts=0
+disable_tab_menu_shortcuts=1
+scroll_on_output=1
+scroll_on_keystroke=1
+scrollback_lines=10000
+title_string=ZinuD: %s
+always_show_tabs=0
+height=20
+cursor_blink_mode=1
+cursor_shape=0

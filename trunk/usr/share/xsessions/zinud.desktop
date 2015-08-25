@@ -1,0 +1,11 @@
+
+[Desktop Entry]
+Encoding=UTF-8
+Name=ZinuD Desktop
+Name[fr]=Le Bureau ZinuD
+Comment=ZinuD desktop use Compiz Fusion Stand-alone
+Comment[fr]=Le bureau ZinuD géré par Compiz Fusion
+Icon=/usr/share/pixmaps/zinud/horned-logo.png
+Exec=/usr/local/bin/zinud-start.sh
+Type=Application
+GenericName=ZinuD Desktop

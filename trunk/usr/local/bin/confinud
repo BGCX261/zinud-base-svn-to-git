@@ -1,0 +1,177 @@
+#! /bin/bash
+# Zinud Conf script by MerMouY for ZinuD
+#
+# Version:0.2
+#
+# +------------------------------------------------------------+
+# | mermouy@gmail.com
+# |
+# | This program is free software; you can redistribute it and/or
+# | modify it under the terms of the GNU General Public License
+# | as published by the Free Software Foundation; either version
+# | 3 of the License, or (at your option) any later version.
+# | 
+# | This program is distributed in the hope that it will be useful,
+# | but WITHOUT ANY WARRANTY; without even the implied warranty
+# | of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# | See the GNU General Public License for more details.
+# |
+# | You should have received a copy of the GNU General Public
+# | License along with this program; if not, write to the
+# | Free Software Foundation, Inc., 51 Franklin St,
+# | Fifth Floor, Boston, MA  02110-1301  USA
+# +------------------------------------------------------------+
+#
+#LANGUE
+#Vérification langue choisie sinon la choisir, ou utiliser en par défaut
+# Icône des fenêtres
+Zinicon="/usr/share/pixmaps/zinud/horned-logo.png"
+
+# Dossier contenant les fichiers de langues
+Zinlangrep="/usr/share/zinud/lang"
+## LANGUE
+
+#Liste des fichiers de langues disponibles listé pour zenity-list
+LIST=`ls -m $Zinlangrep | sed -e 's/.cfg,/ FALSE/g' |  sed -e 's/.cfg//g' | sed -e 's/^/FALSE /' | sed -e 's/FALSE en/TRUE en/g'`
+
+#Vérification langue choisie sinon la choisir, ou utiliser en par défaut
+
+while [ ! -f ~/.config/zinud/lang.cfg ]
+do
+	. $Zinlangrep/en.cfg
+	zenity --question --window-icon="$Zinicon" --title="$Zininstall" --text="$Zininstalltxt" || exit 0
+	if [ $? = "0" ]
+	then
+	Chlang=$(zenity --list \
+		--radiolist \
+		--window-icon="$Zinicon" \
+		--title="$Language" \
+		--window-icon="$Zinicon" \
+		--text="$Langconf" \
+		--print-column="2" \
+		--column "$Select" \
+		--column "$Availang" \
+		$LIST) || exit 0
+		cp -vf $Zinlangrep/$Chlang.cfg ~/.config/zinud/lang.cfg
+		. ~/.config/zinud/lang.cfg
+	else
+	cp -vf $Zinlangrep/en.cfg ~/.config/zinud/lang.cfg
+	. ~/.config/zinud/lang.cfg
+	zenity --window-icon="$Zinicon" --info --text="$Engdef"
+	fi
+done
+
+#on source ce fichier de langue 
+. ~/.config/zinud/lang.cfg
+
+# Vérification du lancement par root
+function Rootverif {
+if [[ $EUID -ne 0 ]]; then
+	zenity --error --title="$Su" --text="$Su $Rerunnow" --window-icon="$Zinicon"
+	gksu exec $0
+fi
+}
+
+##Firewall
+function Firewall {
+Rootverif
+zenity --question --window-icon="$Zinicon" --title="$Iptables" --text="$Iptablestxt\n\n<u>http://firewall.youm.org </u>$Iptablestxt1<b> $Interfaceact</b>\n\n$Iptablestxt2"
+if [ $? = "0" ]
+then
+#Redirection vers http://firewall.youm.org pour génération du script
+	iceweasel "http://firewall.youm.org"
+	zenity --info --title="$Confirm" --text="$Whendone"
+#Sélection du fichier ainsi obtenu
+	Iptablesscript=$(zenity --file-selection --title="$Iptablesscripttxt")
+	if [ -f $Iptablesscript ]
+	then
+#On passe en administrateur
+		zenity --window-icon="$Zinicon" --warning --title="$Su" --text="$Sutxt"
+#Sauvegarde de l'ancien si existant
+		if [ -f /etc/init.d/iptables ]
+		then
+			"rm /etc/init.d/iptables"
+		fi
+		"cp $Iptablesscript /etc/init.d/iptables" 
+		"chmod +x /etc/init.d/iptables"
+#Activation immédiate?
+		zenity --question --window-icon="$Zinicon" --title="$Iptablesboot" --text="$Iptablestxt"
+		if [ $? = "0" ]
+		then
+			"/etc/init.d/iptables start" | zenity --title="$Iptablesscripttxt" --text-info --window-icon="$Zinicon"
+		fi
+#Activation au boot?
+		zenity --question --window-icon="$Zinicon" --title="$Iptablesboot" --text="$Iptablesboottxt"
+		if [ $? = "0" ]
+		then
+			"update-rc.d -f iptables defaults"
+		fi
+	zenity --window-icon="$Zinicon" --info --title="$Iptablesscripttxt" --text="$Firewalldone"
+	fi
+else exec $0
+fi
+}
+
+#Nvidia config
+function nvd {
+if 
+[ -f /usr/bin/nvidia-settings ]
+then
+	Rootverif
+	exec nvidia-settings && exec $0
+else
+	zenity --info --window-icon="$Zinicon" --title="$Desktopconfig" --text="$Nvidiainstall" && exec $0
+fi
+}
+
+function Sourcesl {
+Rootverif
+#Sauvegarde du fichier sources.list original
+cp -f /etc/apt/sources.list /etc/apt/sources.list.`cate +%H`
+#Édition du fichier
+zenity --text-info --filename="/etc/apt/sources.list" --title="Édition des sources de logiciels" --editable --height=500 --width=700 > /etc/apt/sources.list~ && mv -f /etc/apt/sources.list~ /etc/apt/sources.list
+#Mise à jour des dépôts
+aptitude update | zenity --progress --text="Mise à jour des sources...\n\nVeuillez patienter..." --pulsate --auto-close --auto-kill --width=400
+zenity --question --text="Dépôts ajournés!\nVoulez-vous mettre votre système à jour?"
+if [ $? = "0" ]
+then aptitude-gtk & exit
+else exit
+fi
+}
+
+### FIN DES FONCTIONS ###
+
+confchoice=$(zenity --list \
+--window-icon="$Zinicon" \
+--title="ConfinuD" \
+--height=350 \
+--width=750 \
+--text="$Confwhat" \
+--print-column="1" \
+--column="$Appli" \
+--column="$Description" \
+desktop-configurator "$Deskconftxt" \
+xpassch "$Chpasswd" \
+remotedesk "$Remotetxt" \
+network-config "$Networktxt" \
+user-manager "$Usermantxt" \
+rcconf "$Servmantxt" \
+firewall "$Firewall" \
+sources.list "$Sourcesl" \
+nvidia-settings "$Nvidia") || exit 0
+for i in `echo "$confchoice"`
+do
+case $i in
+desktop-configurator) exec desktop-configurator ;;
+xpassch) exec xpassch ;;
+remotedesk) exec remote-desktop-manager ;;
+network-config) exec gksu "network-config" ;;
+user-manager) exec gksu "user-manager" ;;
+rcconf) exec gksu "x-terminal-emulator -e rcconf" ;;
+firewall) Firewall ;;
+sources.list) Sourcesl ;;
+nvidia-settings) nvd ;;
+esac
+done
+exit 0
+

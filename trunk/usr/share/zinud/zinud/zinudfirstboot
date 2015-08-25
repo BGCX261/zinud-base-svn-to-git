@@ -1,0 +1,111 @@
+#!/bin/bash
+#Ce script est exécuté à la première installation de ZinuD
+# Version 0.3
+#
+# +------------------------------------------------------------+
+# | mermouy@gmail.com
+# |
+# | This program is free software; you can redistribute it and/or
+# | modify it under the terms of the GNU General Public License
+# | as published by the Free Software Foundation; either version
+# | 3 of the License, or (at your option) any later version.
+# | 
+# | This program is distributed in the hope that it will be useful,
+# | but WITHOUT ANY WARRANTY; without even the implied warranty
+# | of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# | See the GNU General Public License for more details.
+# |
+# | You should have received a copy of the GNU General Public
+# | License along with this program; if not, write to the
+# | Free Software Foundation, Inc., 51 Franklin St,
+# | Fifth Floor, Boston, MA  02110-1301  USA
+# +------------------------------------------------------------+
+#
+
+###VARIABLES###
+
+# Lien vers le site
+html_tag="<a href='http://www.zinud.youm.org/'><u>http://zinud.youm.org</u></a>"
+
+# Dossier contenant les fichiers de langue
+Zinlangrep="/usr/share/zinud/lang"
+
+# liste des services
+Servicesliste="gnome-keyring-daemon\nogg123\nnumlockx\nThunar daemon\nnitrogen\nDossier autostart"
+
+# Icône des fenêtres
+Zinicon="/usr/share/pixmaps/zinud/horned-logo.png"
+
+#Liste des fichiers de langues disponibles listé pour zenity-list
+LIST=`ls -m $Zinlangrep | sed -e 's/.cfg,/ FALSE/g' |  sed -e 's/.cfg//g' | sed -e 's/^/FALSE /' | sed -e 's/FALSE en/TRUE en/g'`
+
+#Dossier autostart à utiliser (celui par défaut est le même que gnome et les bureaux compliants freedesktop.org)
+Autodir="$HOME/.config/autostart"
+
+### FIN DES VARIALBLES 
+
+# Le dossier autostart existe sinon le créer:
+if [ ! -d $Autodir ]
+then mkdir -vp $Autodir && chown -R $USER:$USER $Autodir
+fi
+
+### LANGUE ###
+
+#Vérification langue choisie sinon la choisir
+while [ ! -f ~/.config/zinud/lang.cfg ]
+do
+	. $Zinlangrep/en.cfg
+	zenity --question --window-icon="$Zinicon" --title="$Zininstall" --text="$Zininstalltxt" || exit 0
+	if [ $? = "0" ] ; then Chlang=$(zenity --list \
+		--radiolist \
+		--title="$Language" \
+		--text="$Langconf" \
+		--print-column="2" \
+		--column "$Select" \
+		--column "$Availang" \
+		$LIST) || exit 0
+		cp -vf $Zinlangrep/$Chlang.cfg ~/.config/zinud/lang.cfg
+		. ~/.config/zinud/lang.cfg
+		zenity --window-icon="$Zinicon" --info --text="$Langdef"
+	else cp -vf $Zinlangrep/en.cfg ~/.config/zinud/lang.cfg
+	zenity --window-icon="$Zinicon" --info --text="$Engdef"
+	fi
+done
+
+#on source ce fichier de langue
+
+. ~/.config/zinud/lang.cfg
+
+### FIN LANGUE ###
+
+###FONCTIONS###
+
+function Deskservices() {
+Newautostart=$(cat ~/.config/zinud/autostart.sh | zenity --title="$Deskservtxt" --text-info --editable --window-icon="$Zinicon" --width="800" --height="600")
+echo "$Newautostart" > ~/.config/zinud/autostart.sh
+chmod +x ~/.config/zinud/autostart.sh;
+}
+
+###FIN DES FONCTIONS###
+
+#################################################
+### Execution ###
+
+# Message de bienvenue
+
+zenity --title="ZinuD Desktop First Boot" --window-icon="$Zinicon" --info --text="<big><span color=\"red\">$Zininstall</span></big>\n\n$Welcome <b>Debian ZinuD !!!</b>\n\n\n$Interested\n\n$html_tag"
+
+# Récapitulatif des services au démarrage:
+zenity --window-icon="$Zinicon" --question --title="$Servicesstart" --text="$Serviceslisttxt\n\n<b>$Servicesliste</b>\n\n$Serviceslistquest"
+if [ $? = "0" ] ; then Deskservices ; fi
+
+#Dropbox initialisation
+
+if [ -f /usr/local/bin/dropbox.py ]
+	then python /usr/local/bin/dropbox.py start -i && python /usr/local/bin/dropbox.py autostart y 
+fi
+
+# Sortie
+
+exit 0
+

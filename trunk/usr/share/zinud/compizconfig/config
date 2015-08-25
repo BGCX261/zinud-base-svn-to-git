@@ -1,0 +1,5 @@
+[general]
+profile = zinud
+integration = true
+backend = ini
+

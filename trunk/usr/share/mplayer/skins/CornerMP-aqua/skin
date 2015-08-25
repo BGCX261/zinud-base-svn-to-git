@@ -1,0 +1,123 @@
+section = movieplayer
+
+ window = main
+
+  ;base=bitmap,x,y
+  ; x:            | y:
+  ;  -  0: left   |  -  0: top
+  ;  - -1: center |  - -1: center
+  ;  - -2: right  |  - -2: bottom
+  base = main, -2, -2
+  
+  ;button=bitmap,x,y,sx,sy,msg
+  ; 1. bitmap: pressed  | x,y: position in window
+  ; 2. bitmap: released | msg: name of system message
+  ; 3. bitmap: disabled | sx,sy: size of button
+  button = icnf,   50, 190, 20, 15, evIconify
+  button = full,   72, 188, 20, 12, evFullScreen
+  button = exit,   92, 184, 23, 15, evExit
+  button = prev,  126, 184, 20, 18, evPrev
+  button = next,  153, 184, 20, 18, evNext
+  button = eqls,  190, 175, 20, 26, evEqualizer
+  button = plst,  219, 175, 20, 26, evPlaylist
+  button = subt,  247, 175, 20, 26, evLoadSubtitle
+;  button = about, 214,  47, 47, 55, evAbout
+  button = load,    9, 147, 40, 39, evLoad
+  button = back,   55, 132, 40, 39, evBackward10sec
+  button = stop,  104, 111, 40, 39, evStop
+  button = pause, 148,  83, 40, 39, evPauseSwitchToPlay
+  button = play,  184,  48, 40, 39, evPlaySwitchToPause
+  button = forwd, 214,   6, 40, 39, evForward10sec
+
+  ;hpotmeter=buttonbitmaps,sx,sy,phasebitmaps,phases,default value,x,y,sx,sy,msg
+  hpotmeter = pos, 10, 9, NULL, 100,  0, 110, 173, 150, 15, evSetMoviePosition
+  hpotmeter = pos, 10, 9, NULL, 100,  0, 195, 118,  72, 15, evSetVolume
+  ;potmeter=phasebitmaps,phases,default value,x,y,sx,sy,msg
+
+  ;font=fontname,fontid
+  font = symbols, symbols
+  font =    font, font
+
+  ;dynamic label
+  ; dlabel=x,y,sx,align,fontid,string ...
+  ;  align: 0: right 1: center 2: left
+  ;  str: $1  = hh:mm:ss
+  ;       $2  = mmmm:ss
+  ;       $3  = hh
+  ;       $4  = mm
+  ;       $5  = ss
+  ;       $6  = movie length, hh:mm:ss
+  ;       $7  = movie length, mmmm:ss
+  ;       $v  = volume, xxx.xx%
+  ;       $V  = volume, xxx.x
+  ;       $b  = balance, xxx.xx%
+  ;       $B  = balance, xxx.x
+  ;       $$  = draw $
+  ;       $a  = audio type (nosound: char n, mono: char m, stereo: char t, etc)
+  ;       $t  = track number
+  ;       $o  = filename
+  ;       $f  = filename with lower case
+  ;       $F  = filename with upper case
+  ;
+  ;       $T  = stream type ( file: f, video cd: v, dvd: d, url: u ), if
+  ;              font contain needed symbol.
+  ;       $l  = draw play symbol, if mplayer is playing movie and font
+  ;              contain playing symbol. ( char l )
+  ;       $s  = draw stop symbol, if mplayer not playing movie and font
+  ;              contain stop symbol. ( char s )
+  ;       $e  = draw pause symbol, if playing is paused and font contain
+  ;              pause symbol ( char e )
+
+    dlabel = 230, 100,  40, 1,    font, "$V"
+    dlabel = 200, 125,  70, 1, symbols, "$1"
+    dlabel = 190, 125,   7, 1, symbols, "$s"
+    dlabel = 190, 125,   7, 1, symbols, "$e"
+    dlabel = 190, 125,   7, 1, symbols, "$l"
+;    dlabel =  45, 190,  22, 1, symbols, "$a"
+    dlabel = 140, 151, 130, 1,    font, "    $t - $o    "
+ end
+
+ window = sub
+
+  ;base=bitmap,x,y,sx,sy
+  ; x:            | y:
+  ;  -  0: left   |  -  0: top
+  ;  - -1: center |  - -1: center
+  ;  - -2: right  |  - -2: bottom
+  base = sub,-1,-1
+  ; background=r,g,b
+  ; window background color, default is black
+  ; only subwindow, and decimal numbers
+  background = 0,0,255
+
+ end
+
+
+ window = menu
+
+  base = menu
+;  base = menu_ko
+
+  selected = menus
+;  selected = menus_ko
+
+  ; menu = x,y,width,height,msg
+  menu = 3,   5, 122, 16, evAbout
+  menu = 3,  28, 122, 15, evLoad
+  menu = 3,  44, 122, 15, evNone         ; Add Playlist
+  menu = 3,  60, 122, 15, evLoadSubtitle
+  menu = 3,  76, 122, 15, evPlay
+  menu = 3, 100, 122, 15, evPlaylist
+  menu = 3, 116, 122, 15, evEqualizer
+  menu = 3, 132, 122, 15, evSkinBrowser
+  menu = 3, 156, 122, 15, evPreferences
+  ;menu = 3, 172, 122, 15, evNone
+  menu = 3, 196, 122, 15, evNormalSize
+  menu = 3, 212, 122, 15, evDoubleSize
+  menu = 3, 228, 122, 15, evFullScreen
+  menu = 3, 244, 122, 15, evIconify
+  menu = 3, 260, 122, 15, evExit
+ end
+
+end
+

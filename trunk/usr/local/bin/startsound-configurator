@@ -1,0 +1,277 @@
+#!/bin/bash
+# Version 0.1
+#
+# +------------------------------------------------------------+
+# | mermouy@gmail.com
+# |
+# | This program is free software; you can redistribute it and/or
+# | modify it under the terms of the GNU General Public License
+# | as published by the Free Software Foundation; either version
+# | 3 of the License, or (at your option) any later version.
+# | 
+# | This program is distributed in the hope that it will be useful,
+# | but WITHOUT ANY WARRANTY; without even the implied warranty
+# | of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# | See the GNU General Public License for more details.
+# |
+# | You should have received a copy of the GNU General Public
+# | License along with this program; if not, write to the
+# | Free Software Foundation, Inc., 51 Franklin St,
+# | Fifth Floor, Boston, MA  02110-1301  USA
+# +------------------------------------------------------------+
+#
+# Icône des fenêtres
+Zinicon="/usr/share/pixmaps/zinud/horned-logo.png"
+
+# Dossier contenant les fichiers de langues
+Zinlangrep="/usr/share/zinud/lang"
+
+# Fichiers à traiter
+Autostartf="$HOME/.config/zinud/autostart.sh"
+Autostartt="$HOME/.config/zinud/autostart~"
+Rebootf="$HOME/.config/zinud/reboot.sh"
+Shutdownf="$HOME/.config/zinud/shutdown.sh"
+Reboott="$HOME/.config/zinud/reboot~"
+Shutdownt="$HOME/.config/zinud/shutdown~"
+
+## LANGUE
+
+#Liste des fichiers de langues disponibles listé pour zenity-list
+LIST=`ls -m $Zinlangrep | sed -e 's/.cfg,/ FALSE/g' |  sed -e 's/.cfg//g' | sed -e 's/^/FALSE /' | sed -e 's/FALSE en/TRUE en/g'`
+
+#Vérification langue choisie sinon la choisir, ou utiliser en par défaut
+
+while [ ! -f ~/.config/zinud/lang.cfg ]
+do
+	. $Zinlangrep/en.cfg
+	zenity --question --window-icon="$Zinicon" --title="$Zininstall" --text="$Zininstalltxt" || exit 0
+	if [ $? = "0" ]
+	then
+	Chlang=$(zenity --list \
+		--radiolist \
+		--window-icon="$Zinicon" \
+		--title="$Language" \
+		--window-icon="$Zinicon" \
+		--text="$Langconf" \
+		--print-column="2" \
+		--column "$Select" \
+		--column "$Availang" \
+		$LIST) || exit 0
+		cp -vf $Zinlangrep/$Chlang.cfg ~/.config/zinud/lang.cfg
+		. ~/.config/zinud/lang.cfg
+	else
+	cp -vf $Zinlangrep/en.cfg ~/.config/zinud/lang.cfg
+	. ~/.config/zinud/lang.cfg
+	zenity --window-icon="$Zinicon" --info --text="$Engdef"
+	fi
+done
+
+# On source ce fichier de langue 
+. ~/.config/zinud/lang.cfg
+
+errorexit(){
+errormessage=`cat /tmp/.errormessage`
+zenity --window-icon="$Zinicon" --error --text="$errormessage"
+rm -f /tmp/.errormessage 2>/dev/null
+exit 1
+}
+
+# Fonctions d'éxécution
+Execut(){
+chmod +x $Autostartf
+}
+
+Executreb(){
+chmod +x $Rebootf
+}
+
+Executshut(){
+chmod +x $Shutdownf
+}
+
+# Vérification de l'état actuel des fichiers
+Actuzic=`cat $Autostartf | grep Musique= | cut -d = -f 2 | sed -e 's:"::g'`
+Actuzicreboot=`cat $Rebootf | grep Zic= | cut -d = -f 2 | sed -e 's:"::g'`
+Actuzicshut=`cat $Shutdownf | grep Zic= | cut -d = -f 2 | sed -e 's:"::g'`
+Deleted=$(cat $Autostartf | grep "#ogg123")
+Deletedreb=$(cat $Rebootf | grep "#ogg123")
+Deletedshut=$(cat $Shutdownf | grep "#ogg123")
+
+# Sortie en musique
+function zicexit(){
+ogg123 -q $1 && exit 0
+}
+
+modifsound=$(zenity --list --window-icon="$Zinicon" --title="$Ssconf" --text="$Soundchoicetxt" \
+--column "" \
+--column "$Soundchoice" \
+--hide-column="1" \
+--print-column="1" \
+Startsound "$Startsoundtxt" \
+Rebootsound "$Rebootsoundtxt" \
+Shutdownsound "$Shutdowntxt") || exit 0
+
+## SON DE DÉMARRAGE ##
+#
+
+if [ "$modifsound" = "Startsound" ]
+then 
+# Si déjà désactivée
+	if [ ! "$Deleted" = "" ]
+	then
+# Est-ce qu'on l'active? Sinon sortie
+	zenity --question --window-icon="$Zinicon" --title="$Ssconf" --text="$Noactivez" || exit 0
+# Activation
+		if [ $? = "0" ]
+		then
+			sed -e 's:#ogg123:ogg123:' $Autostartf > $Autostartt 2>/tmp/.errormessage || errorexit
+			mv $Autostartt $Autostartf
+			Execut
+			zenity --window-icon="$Zinicon" --info --text="$Activenow"
+		fi
+	fi
+#Son actuel, en changer?
+ogg123 -q $Actuzic &
+zenity --question --window-icon="$Zinicon" --title="$Ssconf" --text="$Actualzic\n\n$Actuzic\n\n<b>$Actualzic1</b>" || zicexit $Actuzic
+if [ $? = "0" ]
+then
+# Choix du son
+	Choosenzic=$(zenity --window-icon="$Zinicon" --file-selection --title="$Choosezic")
+	if [ -z $Choosenzic ]
+	then
+# Si annulation (pas de son?)
+		zenity --window-icon="$Zinicon" --question --text="$Nozic" || exit 0
+		if [ $? = "0" ]
+		then
+# Désactiver
+			sed -e 's:ogg123:#ogg123:' $Autostartf > $Autostartt
+			mv $Autostartt $Autostartf
+			Execut
+			zenity --info --window-icon="$Zinicon" --text="$Zicremoved"
+			exit 0
+		fi
+	elif [ -f $Choosenzic ]
+	then
+# Remplacement par le son choisi
+		sed -e 's:$Actuzic:"$Choosenzic":g' $Autostartf > $Autostartt
+		mv $Autostartt $Autostartf
+		Execut
+		zenity --window-icon="$Zinicon" --info --text="$Zicchoosetxt" & ogg123 -q $Choosenzic
+		exit 0
+	else
+		zenity --window-icon="$Zinicon" --error --text="$Errorzic"
+	fi
+fi
+## SON DE REBOOT ##
+#
+
+elif [ $modifsound = "Rebootsound" ]
+then
+# Si déjà désactivée
+	if [ ! "$Deletedreb" = "" ]
+	then
+# Est-ce qu'on l'active? Sinon sortie
+		zenity --question --window-icon="$Zinicon" --title="$Ssconf" --text="$Noactivez" || exit 0
+# Activation
+		if [ $? = "0" ]
+		then
+			sed -e 's:#ogg123:ogg123:' $Rebootf > $Reboott 2>/tmp/.errormessage || errorexit
+			mv $Reboott $Rebootf
+			Executreb
+			zenity --window-icon="$Zinicon" --info --text="$Activenow"
+		fi
+	fi
+#Son actuel, en changer?
+	ogg123 -q $Actuzicreboot &
+	zenity --question --window-icon="$Zinicon" --title="$Ssconf" --text="$Actualzic\n\n$Actuzicreboot\n\n<b>$Actualzic2</b>" || exit 0
+	if [ $? = "0" ]
+	then
+# Choix du son
+		Choosenzic=$(zenity --window-icon="$Zinicon" --file-selection --title="$Choosezic")
+		if [ -z $Choosenzic ]
+		then
+# Si annulation (pas de son?)
+			zenity --window-icon="$Zinicon" --question --text="$Nozic" || exit 0
+			if [ $? = "0" ]
+			then
+# Désactiver
+				sed -e 's:ogg123:#ogg123:' $Rebootf > $Reboott
+				mv $Reboott $Rebootf
+				Executreb
+				zenity --info --window-icon="$Zinicon" --text="$Zicremoved"
+				exit 0
+			fi
+		elif [ -f $Choosenzic ]
+	then
+# Remplacement par le son choisi
+		sed -e "s:$Actuzicreboot:$Choosenzic:" $Rebootf > $Reboott
+		mv $Reboott $Rebootf
+		Sleeptime=$(zenity --entry --title="$Ssconf" --window-icon="$Zinicon" --text="$Sleeptxt" --entry-text=`cat $Rebootf | grep "sleep" | cut -d " " -f 2`) || return 3
+		sed -e "s:sleep [0-9]:sleep $Sleeptime:" $Rebootf > $Reboott
+		mv $Reboott $Rebootf
+		Executreb
+		zenity --window-icon="$Zinicon" --info --text="$Zicchoosetxt" & ogg123 -q $Choosenzic
+		exit 0
+	else
+		zenity --window-icon="$Zinicon" --error --text="$Errorzic"
+	fi
+fi
+
+## SON D'EXTINCTION ##
+#
+
+elif [ $modifsound = "Shutdownsound" ]
+then
+# Si déjà désactivée
+	if [ ! "$Deletedshut" = "" ]
+	then
+# Est-ce qu'on l'active? Sinon sortie
+		zenity --question --window-icon="$Zinicon" --title="$Ssconf" --text="$Noactivez" || exit 0
+# Activation
+		if [ $? = "0" ]
+		then
+			sed -e 's:#ogg123:ogg123:' $Shutdownf > $Shutdownt 2>/tmp/.errormessage || errorexit
+			mv $Shutdownt $Shutdownf
+			Executshut
+			zenity --window-icon="$Zinicon" --info --text="$Activenow"
+		fi
+	fi
+#Son actuel, en changer?
+	vlc -d --play-and-exit $Actuzicshut &
+	zenity --question --window-icon="$Zinicon" --title="$Ssconf" --text="$Actualzic\n\n$Actuzicshut\n\n<b>$Actualzic3</b>" || exit 0
+	if [ $? = "0" ]
+	then
+# Choix du son
+		Choosenzic=$(zenity --title="$Ssconf" --window-icon="$Zinicon" --file-selection --title="$Choosezic")
+		if [ -z $Choosenzic ]
+		then
+# Si annulation (pas de son?)
+			zenity --title="$Ssconf" --window-icon="$Zinicon" --question --text="$Nozic" || exit 0
+			if [ $? = "0" ]
+			then
+# Désactiver
+				sed -e 's:ogg123:#ogg123:' $Shutdownf > $Shutdownt
+				mv $Shutdownt $Shutdownf
+				Executshut
+				zenity --info --window-icon="$Zinicon" --text="$Zicremoved"
+				exit 0
+			fi
+		elif [ -f $Choosenzic ]
+		then
+# Remplacement par le son choisi
+			sed -e "s:$Actuzicshut:$Choosenzic:g" $Shutdownf > $Shutdownt
+			mv $Shutdownt $Shutdownf
+			Sleeptime=$(zenity --entry --title="$Ssconf" --window-icon="$Zinicon" --text="$Sleeptxt" --entry-text=`cat $Shutdownf | grep "sleep" | cut -d " " -f 2`) || return 3
+			sed -e "s:sleep [0-9]:sleep $Sleeptime:" $Shutdownf > $Shutdownt
+			mv $Shutdownt $Shutdownf
+			Executshut
+			zenity --window-icon="$Zinicon" --info --text="$Zicchoosetxt" & ogg123 -q $Choosenzic
+			exit 0
+		else
+			zenity --window-icon="$Zinicon" --error --text="$Errorzic"
+		fi
+	fi
+else 
+	exit 0
+fi
+
